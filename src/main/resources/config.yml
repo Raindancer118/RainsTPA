@@ -1,0 +1,51 @@
+# Rain's TPA
+#
+#   /tpa [player]        asks to teleport to them; with nobody named, opens the menu
+#   /tpahere <player>    asks them to teleport to you
+#   /tpaccept [player]   say yes — also a clickable button in the message
+#   /tpdeny [player]     say no
+#   /tpcancel            take your own request back (or call off a running warmup)
+#   /tptoggle [on|off]   whether anybody may ask you
+#   /tpablock <player>   whether one person may ask you; /tpaunblock lifts it
+#   /back                undo the last teleport, or return to where you died
+#
+# Everything above is also a button in /tpa — there is no feature that exists in only one of the two.
+#
+# Permissions:
+#   tpa.use              ask and answer                     (default: everyone)
+#   tpa.back             use /back                          (default: everyone)
+#   tpa.bypass.warmup    teleport immediately               (default: nobody)
+#   tpa.bypass.cooldown  no wait between requests           (default: nobody)
+#   tpa.bypass.toggle    ask somebody who has asked not to be asked  (default: nobody)
+
+tpa:
+  # How long a request waits for an answer. Both players are told when it lapses.
+  request-seconds: 60
+
+  # Standing still before the teleport, so /tpa is not a way out of a fight. 0 teleports at once.
+  # The player who travels is the one who waits: whoever asked, for /tpa, and whoever answered, for
+  # /tpahere.
+  warmup-seconds: 3
+  # Turning and looking around never counts as moving — only leaving the block you started on.
+  cancel-on-move: true
+  cancel-on-damage: true
+
+  # Seconds before the same player may send another request. Keeps one player from asking the whole
+  # server in a row. 0 for none.
+  cooldown-seconds: 5
+
+  # Whether a request may be made to somebody in another world, and whether /back may cross one.
+  allow-cross-world: true
+
+  # Whether an operator skips the warmup and the cooldowns without holding the nodes. Off: an admin
+  # who silently bypasses a feature is the one person who cannot test it.
+  operators-bypass: false
+
+  # /back undoes the last teleport — and, mostly, takes you to where you died. Switching it off
+  # removes both the command and its button from the menu.
+  back-enabled: true
+  back-on-death: true
+  back-cooldown-seconds: 10
+
+  # Whether the player being asked hears a bell. Off leaves them the chat line alone.
+  notify-sound: true

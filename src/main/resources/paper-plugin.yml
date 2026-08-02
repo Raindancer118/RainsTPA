@@ -1,0 +1,38 @@
+name: ${project.name}
+version: ${project.version}
+main: de.raindancer.tpa.TpaPlugin
+api-version: '1.21'
+description: ${project.description}
+author: Raindancer118
+website: https://github.com/Raindancer118
+
+# Bukkit.getScheduler() is never touched. The two repeating things in this plugin — a teleport warmup
+# and a request running out — both belong to a player and run on that player's own EntityScheduler,
+# regionised on Folia and ordinary on Paper. Saving happens on a thread this plugin owns, off the
+# server's schedulers entirely, so a write can never land in the middle of a tick.
+folia-supported: true
+
+permissions:
+  tpa.use:
+    description: Ask other players to teleport, and answer what they ask. /tpa opens the menu.
+    default: true
+  tpa.back:
+    # Separate from tpa.use: a server may want players to travel to each other and still not want
+    # dying to be undoable. Switching back-enabled off in config.yml removes the command and its
+    # button at once.
+    description: Use /back to undo the last teleport, or return to where you died
+    default: true
+  tpa.bypass.warmup:
+    # Deliberately NOT granted to operators. An admin who inherits the bypass sees no warmup, decides
+    # the setting is broken, and the one person able to test the feature is the one it never
+    # applies to. Set tpa.operators-bypass in config.yml if that is what you want.
+    description: Teleport without the standing-still wait
+    default: false
+  tpa.bypass.cooldown:
+    description: Send requests, and use /back, without waiting in between
+    default: false
+  tpa.bypass.toggle:
+    # Not on for operators either: /tptoggle and the block list are a player's own answer to being
+    # pestered, and a node that walks through them should be granted on purpose.
+    description: Ask a player who has switched requests off, or who has blocked you
+    default: false
