@@ -54,6 +54,20 @@ jobs:
             exit 1
           fi
 
+      # Whether this pom version already has a tag on the remote — the switch that lets a plain
+      # version bump on main publish on its own, instead of silently building a jar nobody can
+      # install as a fixed version until somebody remembers to push a matching tag by hand.
+      - name: Check whether vVERSION is already tagged
+        id: tagcheck
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/v${{ steps.version.outputs.version }}" \
+              >/dev/null 2>&1; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and test
         run: mvn --batch-mode --no-transfer-progress verify
 
@@ -118,9 +132,10 @@ jobs:
 
       # A pushed vX.Y.Z tag cuts the permanent, versioned release.
       - name: Publish the versioned release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.tagcheck.outputs.new == 'true')
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
           VERSION: ${{ steps.version.outputs.version }}
           SHA256: ${{ steps.jar.outputs.sha256 }}
         run: |
@@ -139,10 +154,24 @@ jobs:
             "\`sha256: ${SHA256}\`" \
             "" \
             "---" > notes.md
-          gh release create "${{ github.ref_name }}" \
+          gh release create "$TAG" \
             "${{ steps.version.outputs.jar }}" \
             "${{ steps.version.outputs.jar }}.sha256" \
             --repo "${{ github.repository }}" \
             --title "RainsTPA ${VERSION}" \
             --notes-file notes.md \
             --generate-notes
+
+      # Tagged only now that the release above has actually succeeded — not before it, so a failed
+      # release leaves no tag behind and gets retried on the next push instead of being silently
+      # marked done. A tag pushed here with the default GITHUB_TOKEN does not retrigger this
+      # workflow (GitHub's own recursion guard), which is why the release runs in *this* job rather
+      # than waiting for that retrigger.
+      - name: Tag this version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.tagcheck.outputs.new == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
